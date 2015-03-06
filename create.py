@@ -25,20 +25,20 @@ def _get_flavor(flavor_name):
 
 
 @click.command()
-@click.option('--external_network_name', default="public", help='External network connected to router.')
+@click.option('--external_network_name', prompt='External network name')
 @click.option('--subnet_dns_server_ip_address', prompt='Application Subnet dns server ip address')
-@click.option('--ssh_accessible_cidr', prompt='Cidr has ssh connectivity to deployed servers')
+@click.option('--ssh_accessible_cidr', prompt='Your working network Cidr')
 @click.option('--base_image_name', prompt='Deployment base image name')
 @click.option('--deploy_manager_flavor_name', prompt='Flavor name of deploy manager(It needs 4G memory at least)')
-@click.option('--deploy_server_flavor_name', prompt='Flavor name of deploy server')
-@click.option('--available_zone', prompt='available_zone for app')
+@click.option('--deploy_server_flavor_name', prompt='Flavor name of deploy servers')
+@click.option('--availability_zone', prompt='Availability zone of deploy servers')
 def create(external_network_name,
            subnet_dns_server_ip_address,
            ssh_accessible_cidr,
            base_image_name,
            deploy_manager_flavor_name,
            deploy_server_flavor_name,
-           available_zone):
+           availability_zone):
     """This program requires public network and base CentOS6.X image"""
     external_network = conn.network.find_network(external_network_name)
     app_router = conn.network.create_router(name=router_name,
@@ -103,14 +103,14 @@ def create(external_network_name,
         "security_groups": [security_group.id],
         "user_data": base64.b64encode(user_data),
         "personality": [
-            {"contents": keypair.private_key, "path": keypair_file},
+            {"contents": base64.b64encode(keypair.private_key), "path": keypair_file},
         ],
         "meta_data": {
             "image_id": image.id,
             "flavor": deploy_server_flavor_name,
             "network_id": app_network.id,
             "key_name": keypair_name,
-            "available_zone": available_zone
+            "availability_zone": availability_zone
         }
     }
 
