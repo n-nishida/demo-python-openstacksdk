@@ -4,15 +4,7 @@ import click
 import base64
 from ConfigParser import SafeConfigParser
 config = SafeConfigParser()
-
-router_name = 
-network_name = 
-subnet_name = "App-Subnet"
-keypair_name = "App-Keypair"
-keypair_file = keypair_name + ".pem"
-subnet_cidr = "192.168.0.0/24"
-deploy_manager_name = "deploy_manager"
-cloud_init = "cloud_init.sh"
+config.read("config.ini")
 
 conn = connection.Connection(auth_url=os.environ["OS_AUTH_URL"],
                              project_name=os.environ["OS_TENANT_NAME"],
@@ -43,14 +35,14 @@ def create(external_network_name,
            availability_zone):
     """This program requires public network and base CentOS6.X image"""
     external_network = conn.network.find_network(external_network_name)
-    app_router = conn.network.create_router(name=router_name,
+    app_router = conn.network.create_router(name=config.defaults().get("router_name"),
                                             external_gateway_info={"network_id": external_network.id})
-    app_network = conn.network.create_network(name=network_name)
-    app_subnet = conn.network.create_subnet(name=subnet_name,
+    app_network = conn.network.create_network(name=config.defaults().get("network_name"))
+    app_subnet = conn.network.create_subnet(name=config.defaults().get("subnet_name"),
                                             network_id=app_network.id,
                                             ip_version="4",
                                             dns_nameservers=[subnet_dns_server_ip_address],
-                                            cidr=subnet_cidr)
+                                            cidr=config.defaults().get("subnet_cidr"))
     conn.network.router_add_interface(app_router, app_subnet.id)
 
     security_group = conn.network.create_security_group(name="APP", description="APP")
@@ -89,15 +81,15 @@ def create(external_network_name,
 
     flavor = _get_flavor(deploy_manager_flavor_name)
 
-    keypair = conn.compute.create_keypair(name=keypair_name)
-    with open(keypair_file , "w") as f:
+    keypair = conn.compute.create_keypair(name=config.defaults().get("keypair_name"))
+    with open(config.defaults().get("keypair_file"), "w") as f:
         f.write(keypair.private_key)
 
-    with open(cloud_init, 'r') as f:
+    with open(config.defaults().get("cloud_init"), 'r') as f:
         user_data = f.read()
 
     manager_server_args = {
-        "name": deploy_manager_name,
+        "name": config.defaults().get("deploy_manager_name"),
         "flavorRef": flavor.id,
         "imageRef": image.id,
         "key_name": keypair.name,
@@ -105,13 +97,13 @@ def create(external_network_name,
         "security_groups": [security_group.id],
         "user_data": base64.b64encode(user_data),
         "personality": [
-            {"contents": base64.b64encode(keypair.private_key), "path": keypair_file},
+            {"contents": base64.b64encode(keypair.private_key), "path": config.defaults().get("keypair_file")},
         ],
         "meta_data": {
             "image_id": image.id,
             "flavor": deploy_server_flavor_name,
             "network_id": app_network.id,
-            "key_name": keypair_name,
+            "key_name": config.defaults().get("keypair_name"),
             "availability_zone": availability_zone
         }
     }
