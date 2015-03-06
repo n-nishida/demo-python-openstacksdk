@@ -2,9 +2,11 @@ from openstack import connection
 import os
 import click
 import base64
+from ConfigParser import SafeConfigParser
+config = SafeConfigParser()
 
-router_name = "App-Router"
-network_name = "App-Net"
+router_name = 
+network_name = 
 subnet_name = "App-Subnet"
 keypair_name = "App-Keypair"
 keypair_file = keypair_name + ".pem"
