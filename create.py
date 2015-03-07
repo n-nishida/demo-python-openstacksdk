@@ -20,19 +20,19 @@ def _get_flavor(flavor_name):
 
 @click.command()
 @click.option('--external_network_name', prompt='Input External network name')
-@click.option('--subnet_dns_server_ip_address', prompt='Input Dns server ip address')
-@click.option('--ssh_accessible_cidr', prompt='Input Cidr ')
-@click.option('--base_image_name', prompt='Input Base image name')
-@click.option('--deploy_manager_flavor_name', prompt='Input Flavor name of deploy manager(4G RAM size at least)')
-@click.option('--deploy_server_flavor_name', prompt='Input Flavor name of deploy servers')
-@click.option('--availability_zone', prompt='Availability zone of deploy servers')
+@click.option('--external_network_dns_server_ip_address', prompt='Input Dns server ip address')
+@click.option('--cidr_can_connect_to_app_network', prompt='Input Cidr ')
+@click.option('--base_image_name', prompt='Input Base image name for servers')
+@click.option('--deploy_manager_flavor_name', prompt='Input Flavor name for deploy manager(4G RAM size at least)')
+@click.option('--deploy_server_flavor_name', prompt='Input Flavor name for deploy servers')
+@click.option('--app_network_availability_zone', prompt='Input Availability zone for servers')
 def create(external_network_name,
-           subnet_dns_server_ip_address,
-           ssh_accessible_cidr,
+           external_network_dns_server_ip_address,
+           cidr_can_connect_to_app_network,
            base_image_name,
            deploy_manager_flavor_name,
            deploy_server_flavor_name,
-           availability_zone):
+           app_network_availability_zone):
     """This program requires public network and base CentOS6.X image"""
     external_network = conn.network.find_network(external_network_name)
     app_router = conn.network.create_router(name=config.defaults().get("router_name"),
@@ -41,7 +41,7 @@ def create(external_network_name,
     app_subnet = conn.network.create_subnet(name=config.defaults().get("subnet_name"),
                                             network_id=app_network.id,
                                             ip_version="4",
-                                            dns_nameservers=[subnet_dns_server_ip_address],
+                                            dns_nameservers=[external_network_dns_server_ip_address],
                                             cidr=config.defaults().get("subnet_cidr"))
     conn.network.router_add_interface(app_router, app_subnet.id)
 
@@ -67,7 +67,7 @@ def create(external_network_name,
     }
     ssh_from_external =  {
         'direction': 'ingress',
-        'remote_ip_prefix': ssh_accessible_cidr,
+        'remote_ip_prefix': cidr_can_connect_to_app_network,
         'protocol': "tcp",
         'port_range_min': "22",
         'port_range_max': "22",
@@ -105,7 +105,7 @@ def create(external_network_name,
             "flavor": deploy_server_flavor_name,
             "network_id": app_network.id,
             "key_name": config.defaults().get("keypair_name"),
-            "availability_zone": availability_zone
+            "availability_zone": app_network_availability_zone
         }
     }
 
