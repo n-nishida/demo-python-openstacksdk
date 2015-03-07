@@ -12,7 +12,7 @@ conn = connection.Connection(auth_url=os.environ["OS_AUTH_URL"],
 
 def _delete_servers():
     for server in conn.compute.list_servers():
-        if raw_input("Input 'y' if you want to delete this server[name=%s, id=%s]." % (server.name, server.id)) == "y":
+        if raw_input("Input 'y' if you want to delete this server[name=%s, id=%s]: " % (server.name, server.id)) == "y":
             server.delete(conn.session)
 
 
@@ -38,7 +38,7 @@ def _delete_keypair():
 
 def _delete_floating_ip():
     for ip in conn.network.list_ips():
-        if raw_input("Input 'y' if you want to delete this floating_ip[ip_address=%s]." % ip.ip_address) == "y":
+        if raw_input("Input 'y' if you want to delete this floating_ip[ip_address=%s]: " % ip.floating_ip_address) == "y":
             ip.delete(conn.session)
 
 

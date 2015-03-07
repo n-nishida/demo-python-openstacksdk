@@ -18,6 +18,14 @@ def _get_flavor(flavor_name):
             return flavor
 
 
+def _get_server_port(server):
+    for port in conn.network.list_ports():
+        for ip in port.fixed_ips:
+            if ip.get("subnet_id") == conn.network.find_subnet(config.defaults().get("subnet_name")).id and \
+                    ip.get("ip_address") == server.ips(conn.session)[0].addr:
+                return port
+
+
 @click.command()
 @click.option('--external_network_name', prompt='Input External network name')
 @click.option('--external_network_dns_server_ip_address', prompt='Input Dns server ip address')
@@ -33,7 +41,16 @@ def create(external_network_name,
            deploy_manager_flavor_name,
            deploy_server_flavor_name,
            app_network_availability_zone):
-    """This program requires public network and base CentOS6.X image"""
+    """
+    This program requires public network and base CentOS6.X image
+    external_network_name = "publicNW"
+    external_network_dns_server_ip_address = "192.168.100.254"
+    cidr_can_connect_to_app_network = "192.168.100.0/24"
+    base_image_name = "centos-base"
+    deploy_manager_flavor_name = "m1.medium"
+    deploy_server_flavor_name = "m1.xsmall"
+    app_network_availability_zone = "nova"
+    """
     external_network = conn.network.find_network(external_network_name)
     app_router = conn.network.create_router(name=config.defaults().get("router_name"),
                                             external_gateway_info={"network_id": external_network.id})
@@ -95,12 +112,12 @@ def create(external_network_name,
         "imageRef": image.id,
         "key_name": keypair.name,
         "networks": [{"uuid": app_network.id}],
-        "security_groups": [security_group.id],
+        "security_group": security_group.name,
         "user_data": base64.b64encode(user_data),
         "personality": [
             {"contents": base64.b64encode(keypair.private_key), "path": config.defaults().get("keypair_file")},
         ],
-        "meta_data": {
+        "metadata": {
             "image_id": image.id,
             "flavor": deploy_server_flavor_name,
             "network_id": app_network.id,
@@ -110,8 +127,15 @@ def create(external_network_name,
     }
 
     manager_server = conn.compute.create_server(**manager_server_args)
+    manager_server = manager_server.wait_for_status(conn.session)
+    manager_server_fixed_ip_address = manager_server.ips(conn.session)[0].addr
+    manager_server_port = _get_server_port(manager_server)
 
-    floating_ip = conn.network.create_ip(floating_network_id=external_network.id)
+    floating_ip = conn.network.create_ip(floating_network_id=external_network.id,
+                                         fixed_ip_address=manager_server_fixed_ip_address,
+                                         port_id=manager_server_port.id)
+
+
 
     click.echo('Hello %s!' % "nishida")
 
