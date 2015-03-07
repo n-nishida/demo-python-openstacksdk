@@ -13,27 +13,33 @@ conn = connection.Connection(auth_url=os.environ["OS_AUTH_URL"],
 def _delete_servers():
     for server in conn.compute.list_servers():
         if raw_input("Input 'y' if you want to delete this server[name=%s, id=%s]." % (server.name, server.id)) == "y":
-            conn.compute.delete_server(server.id)
+            server.delete(conn.session)
 
 
 def _delete_network():
-    conn.network.router_remove_interface()
-    conn.network.delete_network(config.defaults("network_name"))
-    conn.network.delete_router(config.defaults("router_name"))
+    router = conn.network.find_router(config.defaults().get("router_name"))
+    subnet = conn.network.find_subnet(config.defaults().get("subnet_name"))
+    network = conn.network.find_network(config.defaults().get("network_name"))
+
+    conn.network.router_remove_interface(router, subnet.id)
+    network.delete(conn.session)
+    router.delete(conn.session)
 
 
 def _delete_security_group():
-    conn.network.delete_security_group(config.defaults().get("security_group_name"))
+    security_group = conn.network.find_security_group(config.defaults().get("security_group_name"))
+    security_group.delete(conn.session)
 
 
 def _delete_keypair():
-    conn.compute.delete_keypair(config.defaults().get("keypair_name"))
+    keypair = conn.network.find_keypair(config.defaults().get("keypair_name"))
+    keypair.delete(conn.session)
 
 
 def _delete_floating_ip():
     for ip in conn.network.list_ips():
         if raw_input("Input 'y' if you want to delete this floating_ip[ip_address=%s]." % ip.ip_address) == "y":
-            conn.network.delete_ip(ip.ip_address)
+            ip.delete(conn.session)
 
 
 def delete():
