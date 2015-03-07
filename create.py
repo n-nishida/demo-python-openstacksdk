@@ -19,12 +19,12 @@ def _get_flavor(flavor_name):
 
 
 @click.command()
-@click.option('--external_network_name', prompt='External network name')
-@click.option('--subnet_dns_server_ip_address', prompt='Application Subnet dns server ip address')
-@click.option('--ssh_accessible_cidr', prompt='Your working network Cidr')
-@click.option('--base_image_name', prompt='Deployment base image name')
-@click.option('--deploy_manager_flavor_name', prompt='Flavor name of deploy manager(It needs 4G memory at least)')
-@click.option('--deploy_server_flavor_name', prompt='Flavor name of deploy servers')
+@click.option('--external_network_name', prompt='Input External network name')
+@click.option('--subnet_dns_server_ip_address', prompt='Input Dns server ip address')
+@click.option('--ssh_accessible_cidr', prompt='Input Cidr ')
+@click.option('--base_image_name', prompt='Input Base image name')
+@click.option('--deploy_manager_flavor_name', prompt='Input Flavor name of deploy manager(4G RAM size at least)')
+@click.option('--deploy_server_flavor_name', prompt='Input Flavor name of deploy servers')
 @click.option('--availability_zone', prompt='Availability zone of deploy servers')
 def create(external_network_name,
            subnet_dns_server_ip_address,
@@ -45,7 +45,8 @@ def create(external_network_name,
                                             cidr=config.defaults().get("subnet_cidr"))
     conn.network.router_add_interface(app_router, app_subnet.id)
 
-    security_group = conn.network.create_security_group(name="APP", description="APP")
+    security_group = conn.network.create_security_group(name=config.defaults().get("security_group_name"),
+                                                        description=config.defaults().get("security_group_name"))
     all_tcp_from_local = {
         'direction': 'ingress',
         'remote_ip_prefix': app_subnet.cidr,
