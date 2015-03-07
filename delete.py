@@ -24,18 +24,22 @@ def _delete_network():
     if router and subnet:
         conn.network.router_remove_interface(router, subnet.id)
     if network:
+        print("deleting network        : " + config.defaults().get("network_name"))
         network.delete(conn.session)
     if router:
+        print("deleting router         : " + config.defaults().get("router_name"))
         router.delete(conn.session)
 
 
 def _delete_security_group():
+    print("deleting security_group : " + config.defaults().get("security_group_name"))
     security_group = conn.network.find_security_group(config.defaults().get("security_group_name"))
     if security_group:
         security_group.delete(conn.session)
 
 
 def _delete_keypair():
+    print("deleting keypair        : " + config.defaults().get("keypair_name"))
     keypair = conn.compute.find_keypair(config.defaults().get("keypair_name"))
     if keypair:
         keypair.delete(conn.session)

@@ -103,6 +103,7 @@ def create(external_network_name,
 
     click.echo("create keypair        : %s" % config.defaults().get("keypair_name"))
     keypair = conn.compute.create_keypair(name=config.defaults().get("keypair_name"))
+    click.echo("create keypair file   : %s" % config.defaults().get("keypair_file"))
     with open(config.defaults().get("keypair_file"), "w") as f:
         f.write(keypair.private_key)
     os.chmod(config.defaults().get("keypair_file"), 0600)
@@ -138,7 +139,10 @@ def create(external_network_name,
         click.echo(("fixed_ip of " + server.name).ljust(30) + ': %s' % server_fixed_ip_address)
         click.echo(("floating_ip of " + server.name).ljust(30) + ': %s' % floating_ip.id)
 
+    click.echo("")
     click.echo("...Finished!")
+    click.echo("You can connect to server by using following command")
+    click.echo("ssh -i %s user@server" % config.defaults().get("keypair_file"))
 
 
 if __name__ == '__main__':
