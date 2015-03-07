@@ -27,46 +27,48 @@ def _get_server_port(server):
 
 
 @click.command()
-@click.option('--external_network_name', prompt='Input External network name')
-@click.option('--external_network_dns_server_ip_address', prompt='Input Dns server ip address')
-@click.option('--cidr_can_connect_to_app_network', prompt='Input Cidr ')
-@click.option('--base_image_name', prompt='Input Base image name for servers')
-@click.option('--deploy_manager_flavor_name', prompt='Input Flavor name for deploy manager(4G RAM size at least)')
-@click.option('--deploy_server_flavor_name', prompt='Input Flavor name for deploy servers')
-@click.option('--app_network_availability_zone', prompt='Input Availability zone for servers')
+@click.option('--external_network_name', prompt='Input external network name')
+@click.option('--external_network_dns_server_ip_address', prompt='Input dns server ip address')
+@click.option('--cidr_can_connect_to_server', prompt='Input Cidr can connect to server by using ssh')
+@click.option('--server_image_name', prompt='Input Base image name for server')
+@click.option('--server_flavor_name', prompt='Input Flavor name for server')
+@click.option('--server_count', prompt='Input server count')
 def create(external_network_name,
            external_network_dns_server_ip_address,
-           cidr_can_connect_to_app_network,
-           base_image_name,
-           deploy_manager_flavor_name,
-           deploy_server_flavor_name,
-           app_network_availability_zone):
+           cidr_can_connect_to_server,
+           server_image_name,
+           server_flavor_name,
+           server_count):
     """
-    This program requires public network and base CentOS6.X image
+    This program requires public network and base Linux image
+    ie:
     external_network_name = "publicNW"
     external_network_dns_server_ip_address = "192.168.100.254"
-    cidr_can_connect_to_app_network = "192.168.100.0/24"
-    base_image_name = "centos-base"
-    deploy_manager_flavor_name = "m1.medium"
-    deploy_server_flavor_name = "m1.xsmall"
-    app_network_availability_zone = "nova"
+    cidr_can_connect_to_server = "192.168.100.0/24"
+    server_image_name = "centos-base"
+    server_flavor_name = "m1.medium"
     """
     external_network = conn.network.find_network(external_network_name)
+    click.echo("create router         : %s" % config.defaults().get("router_name"))
     app_router = conn.network.create_router(name=config.defaults().get("router_name"),
                                             external_gateway_info={"network_id": external_network.id})
-    app_network = conn.network.create_network(name=config.defaults().get("network_name"))
-    app_subnet = conn.network.create_subnet(name=config.defaults().get("subnet_name"),
-                                            network_id=app_network.id,
+    click.echo("create network        : %s" % config.defaults().get("network_name"))
+    network = conn.network.create_network(name=config.defaults().get("network_name"))
+    click.echo("create subnet         : %s" % config.defaults().get("subnet_name"))
+    subnet = conn.network.create_subnet(name=config.defaults().get("subnet_name"),
+                                            network_id=network.id,
                                             ip_version="4",
                                             dns_nameservers=[external_network_dns_server_ip_address],
                                             cidr=config.defaults().get("subnet_cidr"))
-    conn.network.router_add_interface(app_router, app_subnet.id)
+    click.echo("add router interface...")
+    conn.network.router_add_interface(app_router, subnet.id)
 
+    click.echo("create security_group : %s" % config.defaults().get("security_group_name"))
     security_group = conn.network.create_security_group(name=config.defaults().get("security_group_name"),
                                                         description=config.defaults().get("security_group_name"))
     all_tcp_from_local = {
         'direction': 'ingress',
-        'remote_ip_prefix': app_subnet.cidr,
+        'remote_ip_prefix': subnet.cidr,
         'protocol': "tcp",
         'port_range_min': "1",
         'port_range_max': "65535",
@@ -75,16 +77,16 @@ def create(external_network_name,
     }
     all_icmp_from_local = {
         'direction': 'ingress',
-        'remote_ip_prefix': app_subnet.cidr,
+        'remote_ip_prefix': subnet.cidr,
         'protocol': 'icmp',
         'port_range_min': None,
         'port_range_max': None,
         'security_group_id': security_group.id,
         'ethertype': 'IPv4'
     }
-    ssh_from_external =  {
+    ssh_from_external = {
         'direction': 'ingress',
-        'remote_ip_prefix': cidr_can_connect_to_app_network,
+        'remote_ip_prefix': cidr_can_connect_to_server,
         'protocol': "tcp",
         'port_range_min': "22",
         'port_range_max': "22",
@@ -95,49 +97,49 @@ def create(external_network_name,
     conn.network.create_security_group_rule(**all_icmp_from_local)
     conn.network.create_security_group_rule(**ssh_from_external)
 
-    image = conn.compute.find_image(base_image_name)
+    image = conn.compute.find_image(server_image_name)
 
-    flavor = _get_flavor(deploy_manager_flavor_name)
+    flavor = _get_flavor(server_flavor_name)
 
+    click.echo("create keypair        : %s" % config.defaults().get("keypair_name"))
     keypair = conn.compute.create_keypair(name=config.defaults().get("keypair_name"))
     with open(config.defaults().get("keypair_file"), "w") as f:
         f.write(keypair.private_key)
+    os.chmod(config.defaults().get("keypair_file"), 0600)
 
     with open(config.defaults().get("cloud_init"), 'r') as f:
         user_data = f.read()
 
-    manager_server_args = {
-        "name": config.defaults().get("deploy_manager_name"),
-        "flavorRef": flavor.id,
-        "imageRef": image.id,
-        "key_name": keypair.name,
-        "networks": [{"uuid": app_network.id}],
-        "security_group": security_group.name,
-        "user_data": base64.b64encode(user_data),
-        "personality": [
-            {"contents": base64.b64encode(keypair.private_key), "path": config.defaults().get("keypair_file")},
-        ],
-        "metadata": {
-            "image_id": image.id,
-            "flavor": deploy_server_flavor_name,
-            "network_id": app_network.id,
-            "key_name": config.defaults().get("keypair_name"),
-            "availability_zone": app_network_availability_zone
+    for i in range(int(server_count)):
+        server_args = {
+            "name": config.defaults().get("server_prefix") + str(i),
+            "flavorRef": flavor.id,
+            "imageRef": image.id,
+            "key_name": keypair.name,
+            "networks": [{"uuid": network.id}],
+            "security_group": security_group.name,
+            "user_data": base64.b64encode(user_data),
+            "personality": [
+                {"contents": base64.b64encode(keypair.private_key), "path": config.defaults().get("keypair_file")},
+            ],
+            "metadata": {"foo": "bar"}
         }
-    }
 
-    manager_server = conn.compute.create_server(**manager_server_args)
-    manager_server = manager_server.wait_for_status(conn.session)
-    manager_server_fixed_ip_address = manager_server.ips(conn.session)[0].addr
-    manager_server_port = _get_server_port(manager_server)
+        server = conn.compute.create_server(**server_args)
+        server = server.wait_for_status(conn.session)
+        server_fixed_ip_address = server.ips(conn.session)[0].addr
+        server_port = _get_server_port(server)
 
-    floating_ip = conn.network.create_ip(floating_network_id=external_network.id,
-                                         fixed_ip_address=manager_server_fixed_ip_address,
-                                         port_id=manager_server_port.id)
+        floating_ip = conn.network.create_ip(floating_network_id=external_network.id,
+                                             fixed_ip_address=server_fixed_ip_address,
+                                             port_id=server_port.id)
+        click.echo("")
+        click.echo(("id of " + server.name).ljust(30) + ': %s' % server.id)
+        click.echo(("fixed_ip of " + server.name).ljust(30) + ': %s' % server_fixed_ip_address)
+        click.echo(("floating_ip of " + server.name).ljust(30) + ': %s' % floating_ip.id)
 
+    click.echo("...Finished!")
 
-
-    click.echo('Hello %s!' % "nishida")
 
 if __name__ == '__main__':
     create()
