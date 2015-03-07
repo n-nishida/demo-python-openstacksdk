@@ -44,10 +44,10 @@ def _delete_floating_ip():
 
 def delete():
     _delete_servers()
-    _delete_network()
     _delete_security_group()
     _delete_keypair()
     _delete_floating_ip()
+    _delete_network()
 
 
 if __name__ == "__main__":
