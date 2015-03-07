@@ -21,19 +21,24 @@ def _delete_network():
     subnet = conn.network.find_subnet(config.defaults().get("subnet_name"))
     network = conn.network.find_network(config.defaults().get("network_name"))
 
-    conn.network.router_remove_interface(router, subnet.id)
-    network.delete(conn.session)
-    router.delete(conn.session)
+    if router and subnet:
+        conn.network.router_remove_interface(router, subnet.id)
+    if network:
+        network.delete(conn.session)
+    if router:
+       router.delete(conn.session)
 
 
 def _delete_security_group():
     security_group = conn.network.find_security_group(config.defaults().get("security_group_name"))
-    security_group.delete(conn.session)
+    if security_group:
+        security_group.delete(conn.session)
 
 
 def _delete_keypair():
-    keypair = conn.network.find_keypair(config.defaults().get("keypair_name"))
-    keypair.delete(conn.session)
+    keypair = conn.compute.find_keypair(config.defaults().get("keypair_name"))
+    if keypair:
+        keypair.delete(conn.session)
 
 
 def _delete_floating_ip():
