@@ -1,4 +1,5 @@
 import os
+import time
 from openstack import connection
 from ConfigParser import SafeConfigParser
 
@@ -22,7 +23,6 @@ def _delete_servers():
                     if floating_ip.floating_ip_address == server_ip.addr:
                         # By default, ip.id responds floating ip address, not floating ip uuid.
                         # However delete API expects ip.id to respond uuid.
-                        # So We must change ip.id to respond uuid.
                         # By changing value of id_attribute property from "floating_ip_address" to "id",
                         # ip.id responds uuid, not ip address.
                         print("deleting floating_ip    : " + floating_ip.floating_ip_address)
@@ -49,6 +49,7 @@ def _delete_network():
 
 def _delete_security_group():
     print("deleting security_group : " + config.defaults().get("security_group_name"))
+    time.sleep(5)
     security_group = conn.network.find_security_group(config.defaults().get("security_group_name"))
     if security_group:
         security_group.delete(conn.session)
@@ -61,24 +62,10 @@ def _delete_keypair():
         keypair.delete(conn.session)
 
 
-def _delete_floating_ip():
-    for ip in conn.network.list_ips():
-        if raw_input(
-                        "Input 'y' if you want to delete this floating_ip[ip_address=%s]: " % ip.floating_ip_address) == "y":
-            # By default, ip.id responds floating ip address, not floating ip uuid.
-            # However delete API expects ip.id to respond uuid.
-            # So We need to change ip.id to response uuid.
-            # By changing value of id_attribute property from "floating_ip_address" to "id",
-            # ip.id responds uuid, not ip address.
-            ip.id_attribute = "id"
-            ip.delete(conn.session)
-
-
 def delete():
     _delete_servers()
     _delete_security_group()
     _delete_keypair()
-    # _delete_floating_ip()
     _delete_network()
     print("...Finished!")
 

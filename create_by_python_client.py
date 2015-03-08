@@ -73,7 +73,7 @@ def create(external_network_name,
     click.echo("create subnet         : %s" % config.defaults().get("subnet_name"))
     subnet_args = {
         "subnet": {
-            "name": config.defaults().get("network_name"),
+            "name": config.defaults().get("subnet_name"),
             "network_id": network["id"],
             "ip_version": "4",
             "dns_nameservers": [external_network_dns_server_ip_address],
@@ -159,13 +159,12 @@ def create(external_network_name,
         server = _wait_for_status(server)
 
         server_fixed_ip_address = server.networks[config.defaults().get("network_name")][0]
-        neutron_client.create_floatingip()
         network_args = {
             "floatingip": {
                 "floating_network_id": external_network["id"]
             }
         }
-        floating_ip = neutron_client.create_ip(network_args)["floatingip"]
+        floating_ip = neutron_client.create_floatingip(network_args)["floatingip"]
         server.add_floating_ip(floating_ip["floating_ip_address"])
 
         click.echo("")
