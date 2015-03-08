@@ -1,6 +1,7 @@
 import os
 from openstack import connection
 from ConfigParser import SafeConfigParser
+
 config = SafeConfigParser()
 config.read("config.ini")
 
@@ -12,7 +13,20 @@ conn = connection.Connection(auth_url=os.environ["OS_AUTH_URL"],
 
 def _delete_servers():
     for server in conn.compute.list_servers():
-        if raw_input("Input 'y' if you want to delete this server[name=%s, id=%s]: " % (server.name, server.id)) == "y":
+        floating_ips = [floating_ip for floating_ip in conn.network.list_ips()]
+        if server.name.startswith(config.defaults().get("server_prefix")) and \
+            raw_input("Input 'y' if you want to delete this server[name=%s, id=%s]: " % (
+                server.name, server.id)) == "y":
+            for server_ip in server.ips(conn.session):
+                for floating_ip in floating_ips:
+                    if floating_ip.floating_ip_address == server_ip:
+                        # By default, ip.id responds floating ip address, not floating ip uuid.
+                        # However delete API expects ip.id to respond uuid.
+                        # So We must change ip.id to respond uuid.
+                        # By changing value of id_attribute property from "floating_ip_address" to "id",
+                        # ip.id responds uuid, not ip address.
+                        floating_ip.id_attribute = "id"
+                        floating_ip.delete(conn.session)
             server.delete(conn.session)
 
 
@@ -48,7 +62,7 @@ def _delete_keypair():
 def _delete_floating_ip():
     for ip in conn.network.list_ips():
         if raw_input(
-                "Input 'y' if you want to delete this floating_ip[ip_address=%s]: " % ip.floating_ip_address) == "y":
+                        "Input 'y' if you want to delete this floating_ip[ip_address=%s]: " % ip.floating_ip_address) == "y":
             # By default, ip.id responds floating ip address, not floating ip uuid.
             # However delete API expects ip.id to respond uuid.
             # So We need to change ip.id to response uuid.
@@ -62,7 +76,7 @@ def delete():
     _delete_servers()
     _delete_security_group()
     _delete_keypair()
-    _delete_floating_ip()
+    # _delete_floating_ip()
     _delete_network()
     print("...Finished!")
 
