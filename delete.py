@@ -19,12 +19,13 @@ def _delete_servers():
                 server.name, server.id)) == "y":
             for server_ip in server.ips(conn.session):
                 for floating_ip in floating_ips:
-                    if floating_ip.floating_ip_address == server_ip:
+                    if floating_ip.floating_ip_address == server_ip.addr:
                         # By default, ip.id responds floating ip address, not floating ip uuid.
                         # However delete API expects ip.id to respond uuid.
                         # So We must change ip.id to respond uuid.
                         # By changing value of id_attribute property from "floating_ip_address" to "id",
                         # ip.id responds uuid, not ip address.
+                        print("deleting floating_ip    : " + floating_ip.floating_ip_address)
                         floating_ip.id_attribute = "id"
                         floating_ip.delete(conn.session)
             server.delete(conn.session)
@@ -38,6 +39,7 @@ def _delete_network():
     if router and subnet:
         conn.network.router_remove_interface(router, subnet.id)
     if network:
+        print("deleting subnet         : " + config.defaults().get("network_name"))
         print("deleting network        : " + config.defaults().get("network_name"))
         network.delete(conn.session)
     if router:
