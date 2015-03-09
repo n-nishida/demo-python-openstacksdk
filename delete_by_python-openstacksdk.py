@@ -32,11 +32,12 @@ def _delete_servers():
 
 
 def _delete_network():
-    router = conn.network.find_router(config.defaults().get("router_name"))
-    subnet = conn.network.find_subnet(config.defaults().get("subnet_name"))
-    network = conn.network.find_network(config.defaults().get("network_name"))
+    router = conn.network.list_routers(name=config.defaults().get("router_name")).next()
+    subnet = conn.network.list_subnets(name=config.defaults().get("subnet_name")).next()
+    network = conn.network.list_networks(name=config.defaults().get("network_name")).next()
+    port = conn.network.list_ports(device_id=router.id, fixed_ips='ip_address=' + subnet.gateway_ip).next()
 
-    if router and subnet:
+    if port:
         conn.network.router_remove_interface(router, subnet.id)
     if network:
         print("deleting subnet         : " + config.defaults().get("network_name"))
