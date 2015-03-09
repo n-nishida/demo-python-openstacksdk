@@ -63,6 +63,8 @@ def delete_network():
 
     if router and subnet:
         port = _get_resource(conn.network.list_ports(device_id=router.id, fixed_ips='ip_address=' + subnet.gateway_ip))
+    else:
+        port = None
 
     if port:
         conn.network.router_remove_interface(router, subnet.id)

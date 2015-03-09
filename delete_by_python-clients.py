@@ -73,6 +73,8 @@ def delete_network():
     if router and subnet:
         port = _get_resource(neutron_client.list_ports(device_id=router["id"],
                                                        fixed_ips='ip_address=' + subnet["gateway_ip"]).get("ports"))
+    else:
+        port = None
 
     if port:
         router_interface_args = {"subnet_id": subnet["id"]}
