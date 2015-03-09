@@ -56,25 +56,6 @@ def delete_servers():
         server.delete(conn.session)
 
 
-def delete_servers():
-    for server in conn.compute.list_servers():
-        floating_ips = [floating_ip for floating_ip in conn.network.list_ips()]
-        if server.name.startswith(config.defaults().get("server_prefix")) and \
-            raw_input("Input 'y' if you want to delete this server[name=%s, id=%s]: " % (
-                server.name, server.id)) == "y":
-            for server_ip in server.ips(conn.session):
-                for floating_ip in floating_ips:
-                    if floating_ip.floating_ip_address == server_ip.addr:
-                        # By default, ip.id responds floating ip address, not floating ip uuid.
-                        # However delete API expects ip.id to respond uuid.
-                        # By changing value of id_attribute property from "floating_ip_address" to "id",
-                        # ip.id responds uuid, not ip address.
-                        print("deleting floating_ip    : " + floating_ip.floating_ip_address)
-                        floating_ip.id_attribute = "id"
-                        floating_ip.delete(conn.session)
-            server.delete(conn.session)
-
-
 def delete_network():
     router = _get_resource(conn.network.list_routers(name=config.defaults().get("router_name")))
     network = _get_resource(conn.network.list_networks(name=config.defaults().get("network_name")))
