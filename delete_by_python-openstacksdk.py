@@ -40,7 +40,7 @@ def _delete_network():
     if port:
         conn.network.router_remove_interface(router, subnet.id)
     if network:
-        print("deleting subnet         : " + config.defaults().get("network_name"))
+        print("deleting subnet         : " + config.defaults().get("subnet_name"))
         print("deleting network        : " + config.defaults().get("network_name"))
         network.delete(conn.session)
     if router:
