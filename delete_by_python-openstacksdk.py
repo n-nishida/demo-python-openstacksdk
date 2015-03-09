@@ -48,17 +48,17 @@ def _delete_network():
 
 
 def _delete_security_group():
-    print("deleting security_group : " + config.defaults().get("security_group_name"))
     time.sleep(5)
     security_group = conn.network.find_security_group(config.defaults().get("security_group_name"))
     if security_group:
+        print("deleting security_group : " + config.defaults().get("security_group_name"))
         security_group.delete(conn.session)
 
 
 def _delete_keypair():
-    print("deleting keypair        : " + config.defaults().get("keypair_name"))
     keypair = conn.compute.find_keypair(config.defaults().get("keypair_name"))
     if keypair:
+        print("deleting keypair        : " + config.defaults().get("keypair_name"))
         keypair.delete(conn.session)
 
 

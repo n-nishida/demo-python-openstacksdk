@@ -1,8 +1,10 @@
 from novaclient.client import Client as NovaClient
+from novaclient.exceptions import NotFound
 from neutronclient.v2_0.client import Client as NeutronClient
 from keystoneclient.auth.identity import v2
 from keystoneclient import session
 import os
+import time
 from ConfigParser import SafeConfigParser
 
 config = SafeConfigParser()
@@ -38,11 +40,14 @@ def _delete_network():
     subnet = neutron_client.list_subnets(name=config.defaults().get("subnet_name"))["subnets"][0]
     network = neutron_client.list_networks(name=config.defaults().get("network_name"))["networks"][0]
 
-    if router and subnet:
+    try:
         router_interface_args = {
             "subnet_id": subnet["id"]
         }
         neutron_client.remove_interface_router(router["id"], router_interface_args)
+    except Exception:
+        pass
+
     if network:
         print("deleting subnet         : " + config.defaults().get("network_name"))
         print("deleting network        : " + config.defaults().get("network_name"))
@@ -53,17 +58,22 @@ def _delete_network():
 
 
 def _delete_security_group():
-    print("deleting security_group : " + config.defaults().get("security_group_name"))
-    security_group = nova_client.security_groups.list({"name": config.defaults().get("security_group_name")})[0]
-    if security_group:
+    time.sleep(5)
+    try:
+        security_group = nova_client.security_groups.find(name=config.defaults().get("security_group_name"))
+        print("deleting security_group : " + config.defaults().get("security_group_name"))
         security_group.delete()
+    except NotFound:
+        pass
 
 
 def _delete_keypair():
-    print("deleting keypair        : " + config.defaults().get("keypair_name"))
-    keypair = nova_client.keypairs.get(config.defaults().get("keypair_name"))
-    if keypair:
+    try:
+        keypair = nova_client.keypairs.get(config.defaults().get("keypair_name"))
+        print("deleting keypair        : " + config.defaults().get("keypair_name"))
         keypair.delete()
+    except NotFound:
+        pass
 
 
 def delete():
