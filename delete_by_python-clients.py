@@ -39,14 +39,13 @@ def _delete_network():
     router = neutron_client.list_routers(name=config.defaults().get("router_name"))["routers"][0]
     subnet = neutron_client.list_subnets(name=config.defaults().get("subnet_name"))["subnets"][0]
     network = neutron_client.list_networks(name=config.defaults().get("network_name"))["networks"][0]
+    port = neutron_client.list_ports(device_id=router["id"], fixed_ips='ip_address=' + subnet["gateway_ip"])["ports"][0]
 
-    try:
+    if port:
         router_interface_args = {
             "subnet_id": subnet["id"]
         }
         neutron_client.remove_interface_router(router["id"], router_interface_args)
-    except Exception:
-        pass
 
     if network:
         print("deleting subnet         : " + config.defaults().get("network_name"))
