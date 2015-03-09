@@ -2,18 +2,12 @@ from novaclient.client import Client as NovaClient
 from neutronclient.v2_0.client import Client as NeutronClient
 from keystoneclient.auth.identity import v2
 from keystoneclient import session
-from openstack import connection
 import os
 import click
 import time
 from ConfigParser import SafeConfigParser
 config = SafeConfigParser()
 config.read("config.ini")
-conn = connection.Connection(auth_url=os.environ["OS_AUTH_URL"],
-                             project_name=os.environ["OS_TENANT_NAME"],
-                             username=os.environ["OS_USERNAME"],
-                             password=os.environ["OS_PASSWORD"])
-
 
 auth = v2.Password(auth_url=os.environ["OS_AUTH_URL"],
                    username=os.environ["OS_USERNAME"],
